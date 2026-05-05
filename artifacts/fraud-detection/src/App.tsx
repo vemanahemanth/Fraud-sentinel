@@ -14,6 +14,7 @@ import AnalyticsExplorer from "@/pages/analytics";
 import ModelPerformance from "@/pages/model-performance";
 import InvestigationTimeline from "@/pages/investigation";
 import CommunicationsPanel from "@/pages/communications";
+import TransactionsPage from "@/pages/transactions";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,7 @@ function Router() {
         <Route path="/model-performance" component={ModelPerformance} />
         <Route path="/investigation" component={InvestigationTimeline} />
         <Route path="/communications" component={CommunicationsPanel} />
+        <Route path="/transactions" component={TransactionsPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { 
   ShieldAlert, Activity, Briefcase, FileSearch, Users, 
   Store, FileText, BarChart3, BrainCircuit, History, 
-  MessageSquareWarning, Settings, LogOut 
+  MessageSquareWarning, Settings, LogOut, CreditCard
 } from "lucide-react";
 import { 
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, 
@@ -13,6 +13,7 @@ import {
 
 const NAV_ITEMS = [
   { title: "Monitor", path: "/", icon: Activity },
+  { title: "Transactions", path: "/transactions", icon: CreditCard },
   { title: "Alerts", path: "/alerts", icon: ShieldAlert },
   { title: "Cases", path: "/cases", icon: Briefcase },
   { title: "Rules", path: "/rules", icon: FileSearch },
