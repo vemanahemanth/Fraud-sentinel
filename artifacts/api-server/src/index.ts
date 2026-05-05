@@ -1,6 +1,9 @@
+import http from "http";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedIfEmpty } from "./lib/seed";
+import { createWsServer } from "./lib/ws-server";
+import { startTransactionSimulator } from "./lib/transaction-simulator";
 
 const rawPort = process.env["PORT"];
 
@@ -16,13 +19,18 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+const server = http.createServer(app);
+createWsServer(server);
 
+server.listen(port, () => {
   logger.info({ port }, "Server listening");
 
-  seedIfEmpty().catch((e) => logger.warn({ err: e }, "Seed failed"));
+  seedIfEmpty()
+    .then(() => startTransactionSimulator())
+    .catch((e) => logger.warn({ err: e }, "Startup failed"));
+});
+
+server.on("error", (err) => {
+  logger.error({ err }, "Server error");
+  process.exit(1);
 });
