@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Fraud Detection & Alert System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: transactions
+    description: Transaction management and scoring
+  - name: alerts
+    description: Fraud alerts and notifications
+  - name: cases
+    description: Case management for fraud investigators
+  - name: rules
+    description: Fraud rule engine configuration
+  - name: users
+    description: User profiles and risk scoring
+  - name: merchants
+    description: Merchant management and blocking
+  - name: sar
+    description: Suspicious Activity Reports
+  - name: analytics
+    description: Analytics and ML model performance
+  - name: dashboard
+    description: Dashboard summary data
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +42,859 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Transactions ──────────────────────────────────────────────────────────
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List transactions with optional filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [approved, blocked, flagged, pending_review]
+        - name: riskLevel
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: cardId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated transaction list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTransactions"
+
+    post:
+      operationId: scoreTransaction
+      tags: [transactions]
+      summary: Score and process a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreTransactionBody"
+      responses:
+        "200":
+          description: Transaction scored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionScoreResult"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get a single transaction with full details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}/review:
+    post:
+      operationId: reviewTransaction
+      tags: [transactions]
+      summary: Submit a manual review decision on a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewTransactionBody"
+      responses:
+        "200":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  # ── Alerts ────────────────────────────────────────────────────────────────
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List fraud alerts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [info, warning, high, critical]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, acknowledged, resolved, dismissed]
+      responses:
+        "200":
+          description: Alert list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedAlerts"
+
+  /alerts/{id}:
+    get:
+      operationId: getAlert
+      tags: [alerts]
+      summary: Get alert details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alert details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/acknowledge:
+    post:
+      operationId: acknowledgeAlert
+      tags: [alerts]
+      summary: Acknowledge an alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/resolve:
+    post:
+      operationId: resolveAlert
+      tags: [alerts]
+      summary: Resolve an alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveAlertBody"
+      responses:
+        "200":
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  # ── Cases ─────────────────────────────────────────────────────────────────
+
+  /cases:
+    get:
+      operationId: listCases
+      tags: [cases]
+      summary: List fraud investigation cases
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, pending_sar, closed, escalated]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Case list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCases"
+
+    post:
+      operationId: createCase
+      tags: [cases]
+      summary: Create a new fraud investigation case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCaseBody"
+      responses:
+        "201":
+          description: Case created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+
+  /cases/{id}:
+    get:
+      operationId: getCase
+      tags: [cases]
+      summary: Get case details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Case details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+
+    patch:
+      operationId: updateCase
+      tags: [cases]
+      summary: Update a fraud case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCaseBody"
+      responses:
+        "200":
+          description: Case updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+
+  /cases/{id}/notes:
+    post:
+      operationId: addCaseNote
+      tags: [cases]
+      summary: Add an investigation note to a case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCaseNoteBody"
+      responses:
+        "201":
+          description: Note added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseNote"
+
+  # ── Rules ─────────────────────────────────────────────────────────────────
+
+  /rules:
+    get:
+      operationId: listRules
+      tags: [rules]
+      summary: List fraud detection rules
+      responses:
+        "200":
+          description: Rules list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FraudRule"
+
+    post:
+      operationId: createRule
+      tags: [rules]
+      summary: Create a new fraud detection rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRuleBody"
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudRule"
+
+  /rules/{id}:
+    patch:
+      operationId: updateRule
+      tags: [rules]
+      summary: Update a fraud detection rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRuleBody"
+      responses:
+        "200":
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudRule"
+
+    delete:
+      operationId: deleteRule
+      tags: [rules]
+      summary: Delete a fraud detection rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Rule deleted
+
+  /rules/{id}/toggle:
+    post:
+      operationId: toggleRule
+      tags: [rules]
+      summary: Enable or disable a rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Rule toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudRule"
+
+  # ── Users ─────────────────────────────────────────────────────────────────
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List user profiles with risk scores
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: riskTier
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, very_high]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedUsers"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user profile with full risk profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}/risk-score:
+    get:
+      operationId: getUserRiskScore
+      tags: [users]
+      summary: Get current risk score breakdown for a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Risk score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskScore"
+
+  # ── Merchants ─────────────────────────────────────────────────────────────
+
+  /merchants:
+    get:
+      operationId: listMerchants
+      tags: [merchants]
+      summary: List merchants
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, blocked, flagged, under_review]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Merchant list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedMerchants"
+
+    post:
+      operationId: addMerchant
+      tags: [merchants]
+      summary: Add a merchant to the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMerchantBody"
+      responses:
+        "201":
+          description: Merchant added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+
+  /merchants/{id}/block:
+    post:
+      operationId: blockMerchant
+      tags: [merchants]
+      summary: Block a merchant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockMerchantBody"
+      responses:
+        "200":
+          description: Merchant blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+
+  /merchants/{id}/unblock:
+    post:
+      operationId: unblockMerchant
+      tags: [merchants]
+      summary: Unblock a merchant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Merchant unblocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Merchant"
+
+  # ── SAR ───────────────────────────────────────────────────────────────────
+
+  /sar:
+    get:
+      operationId: listSARs
+      tags: [sar]
+      summary: List Suspicious Activity Reports
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, under_review, accepted, rejected]
+      responses:
+        "200":
+          description: SAR list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedSARs"
+
+    post:
+      operationId: createSAR
+      tags: [sar]
+      summary: Create a new Suspicious Activity Report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSARBody"
+      responses:
+        "201":
+          description: SAR created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SAR"
+
+  /sar/{id}:
+    get:
+      operationId: getSAR
+      tags: [sar]
+      summary: Get a SAR by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SAR details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SAR"
+
+    patch:
+      operationId: updateSAR
+      tags: [sar]
+      summary: Update a SAR
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSARBody"
+      responses:
+        "200":
+          description: SAR updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SAR"
+
+  /sar/{id}/submit:
+    post:
+      operationId: submitSAR
+      tags: [sar]
+      summary: Submit SAR to regulators
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SAR submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SAR"
+
+  # ── Analytics / Dashboard ─────────────────────────────────────────────────
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get real-time dashboard summary stats
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/transaction-velocity:
+    get:
+      operationId: getTransactionVelocity
+      tags: [dashboard]
+      summary: Get transaction velocity over time
+      parameters:
+        - name: interval
+          in: query
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d, 30d]
+            default: 24h
+      responses:
+        "200":
+          description: Velocity time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimeSeriesPoint"
+
+  /dashboard/alert-breakdown:
+    get:
+      operationId: getAlertBreakdown
+      tags: [dashboard]
+      summary: Get alert count breakdown by severity and type
+      responses:
+        "200":
+          description: Alert breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertBreakdown"
+
+  /analytics/model-performance:
+    get:
+      operationId: getModelPerformance
+      tags: [analytics]
+      summary: Get ML model performance metrics
+      parameters:
+        - name: modelName
+          in: query
+          schema:
+            type: string
+            enum: [isolation_forest, autoencoder, velocity_model]
+            default: isolation_forest
+      responses:
+        "200":
+          description: Model performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelPerformance"
+
+  /analytics/fraud-trends:
+    get:
+      operationId: getFraudTrends
+      tags: [analytics]
+      summary: Get fraud trend analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        "200":
+          description: Fraud trends
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudTrends"
+
+  /analytics/geolocation-heatmap:
+    get:
+      operationId: getGeolocationHeatmap
+      tags: [analytics]
+      summary: Get fraud geolocation heatmap data
+      responses:
+        "200":
+          description: Geolocation data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeoPoint"
+
+  /analytics/top-risk-users:
+    get:
+      operationId: getTopRiskUsers
+      tags: [analytics]
+      summary: Get top high-risk users
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Top risk users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserRiskSummary"
+
+  /analytics/spending-anomalies:
+    get:
+      operationId: getSpendingAnomalies
+      tags: [analytics]
+      summary: Get recent spending pattern anomalies
+      responses:
+        "200":
+          description: Anomaly list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SpendingAnomaly"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +902,942 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    # ── Transaction ────────────────────────────────────────────────────────
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        cardId:
+          type: string
+        userId:
+          type: string
+        merchantId:
+          type: string
+        merchantName:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [approved, blocked, flagged, pending_review]
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        fraudType:
+          type: string
+          nullable: true
+        location:
+          $ref: "#/components/schemas/Location"
+        deviceFingerprint:
+          type: string
+          nullable: true
+        responseTime:
+          type: number
+          description: Scoring latency in ms
+        triggeredRules:
+          type: array
+          items:
+            type: string
+        anomalyScore:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        reviewedBy:
+          type: string
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reviewDecision:
+          type: string
+          enum: [confirmed_fraud, false_positive, escalated]
+          nullable: true
+        reviewNotes:
+          type: string
+          nullable: true
+      required: [id, cardId, userId, merchantId, merchantName, amount, currency, status, riskScore, riskLevel, createdAt]
+
+    PaginatedTransactions:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    ScoreTransactionBody:
+      type: object
+      properties:
+        cardId:
+          type: string
+        userId:
+          type: string
+        merchantId:
+          type: string
+        merchantName:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        location:
+          $ref: "#/components/schemas/Location"
+        deviceFingerprint:
+          type: string
+          nullable: true
+      required: [cardId, userId, merchantId, merchantName, amount, currency]
+
+    TransactionScoreResult:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        decision:
+          type: string
+          enum: [approved, blocked, flagged, challenge_2fa]
+        riskScore:
+          type: number
+        riskLevel:
+          type: string
+        responseTimeMs:
+          type: number
+        triggeredRules:
+          type: array
+          items:
+            type: string
+        explanation:
+          type: string
+      required: [transactionId, decision, riskScore, riskLevel, responseTimeMs, triggeredRules, explanation]
+
+    ReviewTransactionBody:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [confirmed_fraud, false_positive, escalated]
+        notes:
+          type: string
+        reviewerId:
+          type: string
+      required: [decision, reviewerId]
+
+    Location:
+      type: object
+      properties:
+        country:
+          type: string
+        city:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        ipAddress:
+          type: string
+          nullable: true
+      required: [country, city, lat, lng]
+
+    # ── Alert ──────────────────────────────────────────────────────────────
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        transactionId:
+          type: string
+          nullable: true
+        userId:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [velocity_breach, geo_anomaly, device_mismatch, amount_threshold, pattern_match, ml_anomaly, blocked_merchant]
+        severity:
+          type: string
+          enum: [info, warning, high, critical]
+        status:
+          type: string
+          enum: [open, acknowledged, resolved, dismissed]
+        title:
+          type: string
+        description:
+          type: string
+        ruleId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, type, severity, status, title, description, createdAt]
+
+    PaginatedAlerts:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alert"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    ResolveAlertBody:
+      type: object
+      properties:
+        resolution:
+          type: string
+        resolvedBy:
+          type: string
+      required: [resolution, resolvedBy]
+
+    # ── Case ───────────────────────────────────────────────────────────────
+
+    Case:
+      type: object
+      properties:
+        id:
+          type: string
+        caseNumber:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, pending_sar, closed, escalated]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        fraudType:
+          type: string
+        estimatedLoss:
+          type: number
+        confirmedLoss:
+          type: number
+          nullable: true
+        assigneeId:
+          type: string
+          nullable: true
+        assigneeName:
+          type: string
+          nullable: true
+        transactionIds:
+          type: array
+          items:
+            type: string
+        alertIds:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseNote"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sarId:
+          type: string
+          nullable: true
+      required: [id, caseNumber, title, status, priority, fraudType, estimatedLoss, transactionIds, alertIds, notes, createdAt, updatedAt]
+
+    PaginatedCases:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Case"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    CreateCaseBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        fraudType:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        transactionIds:
+          type: array
+          items:
+            type: string
+        alertIds:
+          type: array
+          items:
+            type: string
+        assigneeId:
+          type: string
+          nullable: true
+        estimatedLoss:
+          type: number
+      required: [title, description, fraudType, priority, estimatedLoss]
+
+    UpdateCaseBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, pending_sar, closed, escalated]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        assigneeId:
+          type: string
+          nullable: true
+        confirmedLoss:
+          type: number
+          nullable: true
+
+    CaseNote:
+      type: object
+      properties:
+        id:
+          type: string
+        caseId:
+          type: string
+        authorId:
+          type: string
+        authorName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, caseId, authorId, authorName, content, createdAt]
+
+    AddCaseNoteBody:
+      type: object
+      properties:
+        authorId:
+          type: string
+        authorName:
+          type: string
+        content:
+          type: string
+      required: [authorId, authorName, content]
+
+    # ── Rule ───────────────────────────────────────────────────────────────
+
+    FraudRule:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [velocity, geolocation, amount_threshold, device, pattern, blacklist]
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        action:
+          type: string
+          enum: [block, flag, challenge_2fa, notify]
+        conditions:
+          type: object
+          additionalProperties: true
+        triggeredCount:
+          type: integer
+        falsePositiveRate:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, name, description, type, enabled, priority, action, conditions, triggeredCount, createdAt, updatedAt]
+
+    CreateRuleBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [velocity, geolocation, amount_threshold, device, pattern, blacklist]
+        priority:
+          type: integer
+        action:
+          type: string
+          enum: [block, flag, challenge_2fa, notify]
+        conditions:
+          type: object
+          additionalProperties: true
+      required: [name, description, type, priority, action, conditions]
+
+    UpdateRuleBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        action:
+          type: string
+          enum: [block, flag, challenge_2fa, notify]
+        conditions:
+          type: object
+          additionalProperties: true
+
+    # ── User ───────────────────────────────────────────────────────────────
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        riskScore:
+          type: number
+        riskTier:
+          type: string
+          enum: [low, medium, high, very_high]
+        totalTransactions:
+          type: integer
+        fraudulentTransactions:
+          type: integer
+        totalSpend:
+          type: number
+        blockedAt:
+          type: string
+          format: date-time
+          nullable: true
+        flaggedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cardCount:
+          type: integer
+        lastActivityAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, email, riskScore, riskTier, totalTransactions, fraudulentTransactions, totalSpend, cardCount, createdAt]
+
+    PaginatedUsers:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    RiskScore:
+      type: object
+      properties:
+        userId:
+          type: string
+        overall:
+          type: number
+        velocityScore:
+          type: number
+        geoScore:
+          type: number
+        deviceScore:
+          type: number
+        behaviorScore:
+          type: number
+        mlScore:
+          type: number
+        factors:
+          type: array
+          items:
+            type: string
+        computedAt:
+          type: string
+          format: date-time
+      required: [userId, overall, velocityScore, geoScore, deviceScore, behaviorScore, mlScore, factors, computedAt]
+
+    UserRiskSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        riskScore:
+          type: number
+        riskTier:
+          type: string
+        fraudulentTransactions:
+          type: integer
+        totalSpend:
+          type: number
+      required: [id, name, email, riskScore, riskTier, fraudulentTransactions, totalSpend]
+
+    # ── Merchant ───────────────────────────────────────────────────────────
+
+    Merchant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        country:
+          type: string
+        status:
+          type: string
+          enum: [active, blocked, flagged, under_review]
+        fraudRate:
+          type: number
+        totalTransactions:
+          type: integer
+        blockedReason:
+          type: string
+          nullable: true
+        blockedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, category, country, status, fraudRate, totalTransactions, createdAt]
+
+    PaginatedMerchants:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Merchant"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    AddMerchantBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        country:
+          type: string
+      required: [name, category, country]
+
+    BlockMerchantBody:
+      type: object
+      properties:
+        reason:
+          type: string
+      required: [reason]
+
+    # ── SAR ────────────────────────────────────────────────────────────────
+
+    SAR:
+      type: object
+      properties:
+        id:
+          type: string
+        sarNumber:
+          type: string
+        caseId:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, under_review, accepted, rejected]
+        subjectName:
+          type: string
+        subjectType:
+          type: string
+          enum: [individual, business]
+        reportingOfficer:
+          type: string
+        filingInstitution:
+          type: string
+        suspiciousActivityType:
+          type: string
+        description:
+          type: string
+        amountInvolved:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, sarNumber, caseId, status, subjectName, subjectType, reportingOfficer, filingInstitution, suspiciousActivityType, description, amountInvolved, startDate, endDate, createdAt, updatedAt]
+
+    PaginatedSARs:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SAR"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, limit, totalPages]
+
+    CreateSARBody:
+      type: object
+      properties:
+        caseId:
+          type: string
+        subjectName:
+          type: string
+        subjectType:
+          type: string
+          enum: [individual, business]
+        reportingOfficer:
+          type: string
+        filingInstitution:
+          type: string
+        suspiciousActivityType:
+          type: string
+        description:
+          type: string
+        amountInvolved:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+      required: [caseId, subjectName, subjectType, reportingOfficer, filingInstitution, suspiciousActivityType, description, amountInvolved, startDate, endDate]
+
+    UpdateSARBody:
+      type: object
+      properties:
+        description:
+          type: string
+        amountInvolved:
+          type: number
+        suspiciousActivityType:
+          type: string
+        reportingOfficer:
+          type: string
+
+    # ── Dashboard / Analytics ───────────────────────────────────────────────
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalTransactionsToday:
+          type: integer
+        fraudulentToday:
+          type: integer
+        blockedToday:
+          type: integer
+        flaggedToday:
+          type: integer
+        totalAmountToday:
+          type: number
+        fraudAmountToday:
+          type: number
+        openAlerts:
+          type: integer
+        criticalAlerts:
+          type: integer
+        openCases:
+          type: integer
+        urgentCases:
+          type: integer
+        pendingSARs:
+          type: integer
+        avgRiskScore:
+          type: number
+        avgResponseTimeMs:
+          type: number
+        falsePositiveRate:
+          type: number
+        detectionRate:
+          type: number
+      required: [totalTransactionsToday, fraudulentToday, blockedToday, flaggedToday, totalAmountToday, fraudAmountToday, openAlerts, criticalAlerts, openCases, urgentCases, pendingSARs, avgRiskScore, avgResponseTimeMs, falsePositiveRate, detectionRate]
+
+    TimeSeriesPoint:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        total:
+          type: integer
+        fraudulent:
+          type: integer
+        blocked:
+          type: integer
+        amount:
+          type: number
+      required: [timestamp, total, fraudulent, blocked, amount]
+
+    AlertBreakdown:
+      type: object
+      properties:
+        bySeverity:
+          type: array
+          items:
+            type: object
+            properties:
+              severity:
+                type: string
+              count:
+                type: integer
+            required: [severity, count]
+        byType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+            required: [type, count]
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+            required: [status, count]
+      required: [bySeverity, byType, byStatus]
+
+    ModelPerformance:
+      type: object
+      properties:
+        modelName:
+          type: string
+        accuracy:
+          type: number
+        precision:
+          type: number
+        recall:
+          type: number
+        f1Score:
+          type: number
+        auc:
+          type: number
+        falsePositiveRate:
+          type: number
+        falseNegativeRate:
+          type: number
+        avgLatencyMs:
+          type: number
+        totalScored:
+          type: integer
+        lastTrainedAt:
+          type: string
+          format: date-time
+        confusionMatrix:
+          type: object
+          properties:
+            tp:
+              type: integer
+            fp:
+              type: integer
+            tn:
+              type: integer
+            fn:
+              type: integer
+          required: [tp, fp, tn, fn]
+        scoreDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              bucket:
+                type: string
+              count:
+                type: integer
+            required: [bucket, count]
+      required: [modelName, accuracy, precision, recall, f1Score, auc, falsePositiveRate, falseNegativeRate, avgLatencyMs, totalScored, lastTrainedAt, confusionMatrix, scoreDistribution]
+
+    FraudTrends:
+      type: object
+      properties:
+        period:
+          type: string
+        byDay:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        byFraudType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+              amount:
+                type: number
+            required: [type, count, amount]
+        byCountry:
+          type: array
+          items:
+            type: object
+            properties:
+              country:
+                type: string
+              count:
+                type: integer
+              amount:
+                type: number
+            required: [country, count, amount]
+        trendChange:
+          type: number
+          description: Percentage change vs previous period
+      required: [period, byDay, byFraudType, byCountry, trendChange]
+
+    GeoPoint:
+      type: object
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+        count:
+          type: integer
+        amount:
+          type: number
+        country:
+          type: string
+      required: [lat, lng, count, amount, country]
+
+    SpendingAnomaly:
+      type: object
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        anomalyType:
+          type: string
+        anomalyScore:
+          type: number
+        description:
+          type: string
+        detectedAt:
+          type: string
+          format: date-time
+        amount:
+          type: number
+      required: [userId, userName, anomalyType, anomalyScore, description, detectedAt, amount]

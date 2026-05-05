@@ -18,3 +18,24 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 23665
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+MONGODB_URL = "mongodb+srv://vemanahemanthbabu_db_user:grKLRzn7nyKgn28M@dbmsfinal.xqx8yip.mongodb.net/?appName=dbmsfinal"
+NEON_DATABASE_URL = "postgresql://neondb_owner:npg_PNTFO1lp8MvD@ep-twilight-wind-amilgib3-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+REDIS_URL = "redis://default:AZaZAAIgcDE2YzA1MDBhMTlkZjU0NjNhOGY4MzRkZGUzZjE0N2I0MQ@concise-moose-38553.upstash.io:6379"
+REDIS_TOKEN = "AZaZAAIgcDE2YzA1MDBhMTlkZjU0NjNhOGY4MzRkZGUzZjE0N2I0MQ"
+NODE_ENV = "development"
