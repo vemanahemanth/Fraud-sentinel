@@ -125,10 +125,13 @@ router.get("/analytics/top-risk-users", async (req, res): Promise<void> => {
     id: u.id,
     name: u.name,
     email: u.email,
+    phone: u.phone,
     riskScore: u.riskScore,
     riskTier: u.riskTier,
     fraudulentTransactions: u.fraudulentTransactions,
     totalSpend: u.totalSpend,
+    blockedAt: u.blockedAt,
+    flaggedAt: u.flaggedAt,
   })));
 });
 

@@ -660,7 +660,7 @@ function ScoringResultCard({ result }: { result: ScoringResult }) {
         )}
 
         {/* Explanation */}
-        {result.explanation.length > 0 && (
+        {Array.isArray(result.explanation) && result.explanation.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">Engine Explanation</p>
             <ul className="space-y-1.5 border border-border/30 rounded-md p-3 bg-card/40">

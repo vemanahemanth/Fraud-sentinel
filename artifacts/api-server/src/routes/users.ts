@@ -63,4 +63,61 @@ router.get("/users/:id/risk-score", async (req, res): Promise<void> => {
   });
 });
 
+/* ── Block a user ──────────────────────────────────────────────── */
+router.post("/users/:id/block", async (req, res): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  if (user.blockedAt) {
+    res.status(409).json({ error: "User is already blocked", blockedAt: user.blockedAt });
+    return;
+  }
+
+  const now = new Date();
+  await db.update(usersTable).set({ blockedAt: now, riskTier: "critical" }).where(eq(usersTable.id, id));
+
+  res.json({ success: true, userId: id, action: "blocked", blockedAt: now });
+});
+
+/* ── Unblock a user ────────────────────────────────────────────── */
+router.post("/users/:id/unblock", async (req, res): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  if (!user.blockedAt) {
+    res.status(409).json({ error: "User is not blocked" });
+    return;
+  }
+
+  await db.update(usersTable).set({ blockedAt: null }).where(eq(usersTable.id, id));
+  res.json({ success: true, userId: id, action: "unblocked" });
+});
+
+/* ── Send notification email (simulated) ───────────────────────── */
+router.post("/users/:id/notify", async (req, res): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const { subject, message } = req.body ?? {};
+  const emailSubject = subject || "Fraud Alert — Suspicious Activity on Your Account";
+  const emailMessage = message || `Dear ${user.name}, we have detected suspicious activity on your account. Please verify your recent transactions. If you did not authorise these transactions, contact our fraud team immediately.`;
+
+  // In a production system this would call an email service (SendGrid, SES, etc.)
+  // For now we simulate success and log.
+  console.log(`[EMAIL] To: ${user.email} | Subject: ${emailSubject} | Body: ${emailMessage}`);
+
+  await db.update(usersTable).set({ flaggedAt: new Date() }).where(eq(usersTable.id, id));
+
+  res.json({
+    success: true,
+    userId: id,
+    email: user.email,
+    subject: emailSubject,
+    sentAt: new Date(),
+  });
+});
+
 export default router;
