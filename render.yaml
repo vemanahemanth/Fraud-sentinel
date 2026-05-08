@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: fraud-sentinel-api
+    env: node
+    plan: free
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        fromConfig: true
+      - key: MONGODB_URL
+        fromConfig: true
+      - key: REDIS_URL
+        fromConfig: true

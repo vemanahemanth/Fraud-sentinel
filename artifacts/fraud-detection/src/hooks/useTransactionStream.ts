@@ -40,7 +40,20 @@ export function useTransactionStream() {
     if (!mountedRef.current) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${window.location.host}/api/ws`;
+    let host = window.location.host;
+
+    // Support production API URL from environment variables
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl && (apiUrl.startsWith('http://') || apiUrl.startsWith('https://'))) {
+      try {
+        const urlObj = new URL(apiUrl);
+        host = urlObj.host;
+      } catch (e) {
+        console.error("Invalid VITE_API_URL", e);
+      }
+    }
+
+    const url = `${protocol}//${host}/api/ws`;
 
     try {
       const ws = new WebSocket(url);
