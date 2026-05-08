@@ -31,4 +31,14 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+// Error handler to debug production crashes
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error({ err }, "Unhandled error");
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: err.message,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
+});
+
 export default app;
